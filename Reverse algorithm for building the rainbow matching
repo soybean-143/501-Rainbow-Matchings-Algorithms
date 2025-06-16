@@ -1,0 +1,129 @@
+def reverse_engineer(g, cond_sequence, rain_choices, edge_colors):
+  num_vertices = g.vcount()
+  m = ig.Graph(n=num_vertices)
+  m.vs["label"] = list(range(num_vertices))
+  m.es['color'] = []  # Initialize edge colors as an empty list
+
+  # plot
+  layout = m.layout_circle()
+  fig, ax = plt.subplots(figsize=(6, 6))
+  ig.plot(m, target=ax, layout=layout, edge_color= m.es['color'])
+  plt.title("Backwards Building Initial Graph")
+  plt.axis("off")
+  plt.show()
+
+  m_edge_colors_list = []
+  current_m_incident_vertices = set()
+
+  for i in sorted(cond_sequence.keys(), reverse=True):  # Iterate through i values in reverse order
+    print(f"Processing step i = {i}")
+    condition = cond_sequence[i][0]  # Get the condition applied at step i
+    print(f"Condition applied: {condition}")
+
+    g_i = rain_choices.get(i)
+
+    if condition == 1:
+      print("hit condition == 1")
+      pass
+
+    elif condition == 2: #picks random incident edge from g_i with new color disjoint from the edges in m
+      print("hit condition == 2")
+      if g_i is not None and g_i.ecount() > 0:
+        edges_to_consider = []
+        current_m_colors = set(m.es["color"]) if m.ecount() > 0 else set() # Get current colors in m
+
+        for edge in g_i.es:
+          source, target = edge.source, edge.target
+          if 0 <= source < m.vcount() and 0 <= target < m.vcount():
+            if source not in current_m_incident_vertices and target not in current_m_incident_vertices: # Check if endpoints are not incident in m
+              edge_in_gi = g_i.es.find(_source=source, _target=target)
+              if edge_in_gi and 'color' in edge_in_gi.attributes():
+                  gi_color = edge_in_gi['color']
+                  if gi_color not in current_m_colors: # Check if the color is not in m
+                    edges_to_consider.append(edge_in_gi) # Add the igraph edge object
+
+        if edges_to_consider:
+          edge_to_add = random.choice(edges_to_consider) # Pick a random edge
+          source, target = edge_to_add.source, edge_to_add.target
+          color = edge_to_add["color"]
+          m.add_edge(source, target, color=color)
+          # Update incident vertices in m
+          current_m_incident_vertices.add(source)
+          current_m_incident_vertices.add(target)
+          print(f"Added a random edge ({source}, {target}) with new color {color}.")
+        else:
+            print("No new edges with new colors to add from g_i for condition 2.")
+      else:
+          print("g_i is None or empty for condition 2. No edges to add.")
+
+
+    elif condition == 3: #pick a random edge from the edges of g_i
+      print("hit condition == 3")
+      if g_i is not None and g_i.ecount() > 0:
+        edges_to_potentially_add = []
+        for edge_to_add in g_i.es:
+          source, target = edge_to_add.source, edge_to_add.target
+          # Ensure vertex indices are valid for graph m
+          if 0 <= source < m.vcount() and 0 <= target < m.vcount():
+            if source not in current_m_incident_vertices and target not in current_m_incident_vertices:
+              edges_to_potentially_add.append(edge_to_add)
+            else:
+              print(f"Edge ({source}, {target}) from g_i (Condition 3) shares endpoints with existing edges in m. Skipping addition.")
+          else:
+            print(f"Skipping edge ({source}, {target}) from g_i (Condition 3): Invalid vertex ID for graph m.")
+
+        if edges_to_potentially_add:
+          edge_to_add = random.choice(edges_to_potentially_add) # Pick a random edge
+          source, target = edge_to_add.source, edge_to_add.target
+          color = edge_to_add["color"]
+          m.add_edge(source, target, color=color)
+          current_m_incident_vertices.add(source)
+          current_m_incident_vertices.add(target)
+          print(f"Added a random edge ({source}, {target}) with color {color} from the color class.")
+        else:
+          print("No new edges to add from g_i for condition 3.")
+      else:
+        print
+
+
+    else: #takes specific edge and its color
+      print("hit condition == 4 (Specific edge and neighbors removed). Adding edge from g_i.")
+      if g_i is not None and g_i.ecount() > 0:
+        for edge_to_add in g_i.es:
+          source, target = edge_to_add.source, edge_to_add.target
+          color = edge_to_add["color"]
+
+          # Check if edge already exists in m and if vertices are valid
+          if 0 <= source < m.vcount() and 0 <= target < m.vcount():
+            if source not in current_m_incident_vertices and target not in current_m_incident_vertices:
+              m.add_edge(source, target, color=color)
+              print(f"Added edge ({source}, {target}) with color {color}")
+              current_m_incident_vertices.add(source)
+              current_m_incident_vertices.add(target)
+            else:
+              print(f"Edge ({source}, {target}) from g_i (Condition 4) shares endpoints with existing edges in m. Skipping addition.")
+          else:
+            print(f"Skipping edge ({source}, {target}): Invalid vertex ID for graph m.")
+        else:
+            print("g_i is None or empty for condition 4. No edge to add.")
+    current_edge_colors_for_plot = [edge["color"] for edge in m.es]
+
+    if m.ecount() > 0 and current_edge_colors_for_plot: # Only plot with edge colors if there are edges and colors exist
+        layout = m.layout_circle()
+        fig, ax = plt.subplots(figsize=(6, 6))
+        ig.plot(m, target=ax, layout=layout, edge_color=current_edge_colors_for_plot)
+        plt.title(f"Graph after step i = {i} (Condition {condition})")
+        plt.axis("off")
+        plt.show()
+    else: # Plot an empty graph or graph with no colors
+        layout = m.layout_circle()
+        fig, ax = plt.subplots(figsize=(6, 6))
+        ig.plot(m, target=ax, layout=layout)
+        plt.title(f"Graph after step i = {i} (Condition {condition})")
+        plt.axis("off")
+        plt.show()
+
+
+  return m  # Return the reconstructed graph
+#builds off max 3
+print(reverse_engineer(g, cond_sequence, rain_choices, edge_colors))
