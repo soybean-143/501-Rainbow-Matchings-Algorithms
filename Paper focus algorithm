@@ -197,3 +197,6 @@ def algo_random(g,edge_colors,m):
   return (g,"Terminating for i-1=m",i)
 
 print(algo_random(g, edge_colors, 5)[1])
+
+#To call the reverse algorithm that creates a rainbow matching on the above
+#print(reverse_engineer(g, cond_sequence, rain_choices, edge_colors))
