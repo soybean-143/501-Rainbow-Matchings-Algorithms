@@ -83,3 +83,19 @@ plt.show()
 reg_new = reg.copy() #Copies for use in other cells
 reg_edge_colors_new = reg_edge_colors.copy()
 col_reg_edge_colors_new = col_reg_edge_colors.copy()
+
+# Originally intended to help automate colors. However, automating the colors doesn't give optimal contrast for viewing the graphs.
+mpl.color_sequences.register('color_classes', ['red', 'blue', 'yellow', 'green', 'pink',
+                                               'purple','cyan', 'darkgreen', 'orange',
+                                               'indigo', 'magenta', 'olive', 'black'])
+
+colors = mpl.color_sequences['color_classes']
+print(colors)
+print({color: [] for color in mpl.color_sequences['color_classes']})
+
+reg = reg_new.copy()
+reg.vs["label"] = list(range(reg.vcount()))
+col_reg_edge_colors = col_reg_edge_colors_new.copy()
+#print(col_reg_edge_colors)
+
+reg.es['color'] = col_reg_edge_colors #assigns empty edge color attributes
