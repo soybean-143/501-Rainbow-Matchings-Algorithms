@@ -1,0 +1,209 @@
+#Modified source 3 algorithm taking minimums
+#uses the >2(m-i) bound instead of Jürgen's >= 3(m-i)+1
+
+#Recreates graph from global cell
+g = reg_new.copy()
+edge_colors = reg_edge_colors_new.copy()
+print(edge_colors)
+g.es["color"] = [edge_colors.get(i, "black") for i in range(len(g.es))] #Assigns edge color attribute per dictionary color
+color_groups = {color: [] for color in  mpl.color_sequences['color_classes']}
+for edge in g.es:
+    color = edge["color"]
+    if color in color_groups:
+        color_groups[color].append(edge.index)
+
+# plot
+layout = g.layout_circle()
+fig, ax = plt.subplots(figsize=(6, 6))
+ig.plot(g, target=ax, layout=layout, edge_color=g.es["color"])
+plt.title("Graph with Colored Edges Pre Algorithm")
+plt.axis("off")
+plt.show()
+
+rain_choices   = {} #initialize dictionary for tracking actions at each value of i to pull from for reverse
+cond_sequence   = {} #records values of i and the condition enacted so we can take the right info from rain_choices
+
+
+def algo_min(g,edge_colors,m):
+
+  for i in range(1,m+1): #m+1 accounts for terminating at i=m-1
+
+    # Update color_groups to reflect current edges in the graph
+    color_groups = {color: [] for color in  mpl.color_sequences['color_classes']}
+
+    for edge in g.es:
+      color = edge["color"]
+      if color in color_groups:
+        color_groups[color].append(edge.index)
+        edge_color_size = [len(a) for a in color_groups.values()]
+        #print(color_groups)
+
+    if len(g.es) == 0: #Check if graph is empty
+        print("Condition 1, Empty Terminate")
+        print("i=",i)
+        cond_sequence  .setdefault(i, []).append(1)
+        g_i = g.subgraph_edges(edges=[])
+        rain_choices  [i] = g_i
+        return (g,i)
+
+    elif (max(g.degree()) > 2*(m-i)): #Check if there is a vertex of suitably high degree
+      print("Condition 2")
+      cond_sequence  .setdefault(i, []).append(2)
+      print("i=",i)
+      lrg_enough = []
+      for v in g.vs:
+        if g.degree(v) > 2*(m-i):
+          lrg_enough.append(v.index)
+      min_degree = min(g.degree(v) for v in lrg_enough)
+      min_suff_vert = []
+      for a in lrg_enough: # Compare the degree of vertex 'a' with the calculated minimum degree
+        if g.degree(a) == min_degree:
+          min_suff_vert.append(a)
+      vert = random.choice(min_suff_vert)
+      print("vert=",vert)
+###################
+      edges_to_add = g.vs[vert].incident()
+      g_i = g.subgraph_edges(edges_to_add, delete_vertices=False)
+      for edge in g_i.es:
+          original_edge = g.es.find(_source=edge.source, _target=edge.target)
+          edge["color"] = original_edge["color"]
+      rain_choices  [i] = g_i
+
+      # plot g_i
+      layout = g_i.layout_circle()
+      fig, ax = plt.subplots(figsize=(6, 6))
+      ig.plot(g_i, target=ax, layout=layout, edge_color=g_i.es["color"])
+      plt.title("G_i")
+      plt.axis("off")
+      plt.show()
+
+      print("rain_choices=",rain_choices)
+###################
+
+      g.delete_edges(g.vs[vert].incident())
+
+      lrg_enough = [] #Resets lists for next run
+      min_suff_vert = []
+      satisfactory_vertices = []
+
+
+      #plot
+      layout = g.layout_circle()
+      fig, ax = plt.subplots(figsize=(6, 6))
+      ig.plot(g, target=ax, layout=layout, edge_color=g.es["color"])
+      plt.title("Graph with Colored Edges")
+      plt.axis("off")
+      plt.show()
+
+
+    elif (max(edge_color_size) >= 2*(m-i) + 1): #Check if there is a color class of suitably high cardinality
+      print("Condition 3")
+      cond_sequence  .setdefault(i, []).append(3)
+      print("i=",i)
+      lrg_enough_cc = []
+      for color in color_groups: #Finds large enough CC
+          if len(color_groups[color]) >= 2 * (m - i) + 1 and len(color_groups[color]) > 0:
+              lrg_enough_cc.append(color_groups[color])
+
+      min_length = min(len(sublist) for sublist in lrg_enough_cc)
+      min_sufficient = [a for a in lrg_enough_cc if len(a) == min_length]
+      color_with_min_edges = random.choice(min_sufficient)
+      print("color_with_min_edges=",color_with_min_edges)
+
+      index_with_min_edges = edge_color_size.index(min_length)
+      color_with_min_edges = list(color_groups.keys())[index_with_min_edges]
+
+      edges_to_delete = color_groups[color_with_min_edges] # Uses the color to pick correct edges
+
+      ###################
+      g_i = g.subgraph_edges(edges_to_delete, delete_vertices=False)
+      for edge in g_i.es:
+          original_edge = g.es.find(_source=edge.source, _target=edge.target)
+          edge["color"] = original_edge["color"]
+      rain_choices  [i] = g_i
+
+      # plot g_i
+      layout = g_i.layout_circle()
+      fig, ax = plt.subplots(figsize=(6, 6))
+      ig.plot(g_i, target=ax, layout=layout, edge_color=g_i.es["color"])
+      plt.title("G_i")
+      plt.axis("off")
+      plt.show()
+
+      print("rain_choices  =",rain_choices  )
+      ###################
+
+      g.delete_edges(edges_to_delete) #deletes edges
+
+      lrg_enough_cc = []  # Resets for next run
+      min_sufficient = []
+
+      # plot
+      layout = g.layout_circle()
+      fig, ax = plt.subplots(figsize=(6, 6))
+      ig.plot(g, target=ax, layout=layout, edge_color=g.es["color"])
+      plt.title("Graph with Colored Edges")
+      plt.axis("off")
+      plt.show()
+
+    else:
+      print("Condition 4")
+      print("i=",i)
+      cond_sequence  .setdefault(i, []).append(4)
+      print("cond_sequence=",cond_sequence)
+      if len(g.es) > 0: #Check if there are any edges left before making a choice
+          rm_edge = random.choice(g.es)
+          print("rm_edge=",rm_edge)
+          edge_cc_adj=[]
+          for e in g.es:
+            if e["color"] == rm_edge["color"]:
+              edge_cc_adj.append(e.index)
+
+          # Find the incident vertices of the edge
+          source_vertex = rm_edge.source
+          target_vertex = rm_edge.target
+
+          ###################
+          g_i = g.subgraph_edges(rm_edge, delete_vertices=False)
+          for edge in g_i.es:
+              original_edge = g.es.find(_source=edge.source, _target=edge.target)
+              edge["color"] = original_edge["color"]
+          rain_choices  [i] = g_i
+
+          # plot g_i
+          layout = g_i.layout_circle()
+          fig, ax = plt.subplots(figsize=(6, 6))
+          ig.plot(g_i, target=ax, layout=layout, edge_color=g_i.es["color"])
+          plt.title("G_i")
+          plt.axis("off")
+          plt.show()
+
+          print("rain_choices  =",rain_choices  )
+          ###################
+
+          # Get the incident edges for both vertices
+          incident_edges_source = g.incident(source_vertex)
+          incident_edges_target = g.incident(target_vertex)
+
+          # Combine the incident edges and remove duplicates (if any)
+          incident_edges = list(set(incident_edges_source + incident_edges_target))
+          edge_cc_adj.extend(incident_edges)
+          g.delete_edges(edge_cc_adj)
+
+          edge_cc_adj = [] #Reset for next run
+
+          # plot
+          layout = g.layout_circle()
+          fig, ax = plt.subplots(figsize=(6, 6))
+          ig.plot(g, target=ax, layout=layout, edge_color=g.es["color"])
+          plt.title("Graph with Colored Edges")
+          plt.axis("off")
+          plt.show()
+
+          #Options: pick edge with largest color class, pick edge with smallest color class,
+          #largest incidence neighborhood, smallest incidence neighborhood
+
+  return (g,"Terminating for i-1=m",i)
+
+print(algo_min(g, edge_colors, 6)[1])
+print(i)
