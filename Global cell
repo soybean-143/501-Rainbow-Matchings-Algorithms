@@ -1,0 +1,85 @@
+!pip install igraph
+import igraph as ig
+import array as arr
+import matplotlib.pyplot as plt
+import random 
+from igraph import Graph
+import matplotlib as mpl
+
+def get_random_list(list_of_lists): #for choosing a random color class and vert of a specified size instead of just the first index one
+  if not list_of_lists:
+    return None
+  return random.choice(list_of_lists)
+
+def greedy_edge_coloring(graph): #edge-colors a graph greedily based off random choice of edge
+    num_edges = graph.ecount()
+    colors = [0] * num_edges  # Initialize edge colors to 0
+    available_colors = set()
+    used_edges = []
+    edge_sequence = graph.es # Get the edge sequence
+    edge_ids = [edge.index for edge in edge_sequence] # Iterate through the edge sequence and print edge IDs
+    for edge_id in range(num_edges): # Get incident edges for the current edge's vertices
+        set_difference = list(set(edge_ids) - set(used_edges))
+        edge = random.choice(set_difference) #Choose random edge from edge set without attributes
+        used_edges.append(edge) #Add edge to used set so it doesn't get picked again
+        incident_edges = set(graph.incident(graph.es[edge].source)) | set(graph.incident(graph.es[edge].target)) #get set of its buddies
+        incident_edges.discard(edge) # Remove the current edge from the incident edges
+        used_colors = {colors[e] for e in incident_edges if colors[e] != 0} # Collect colors of incident edges
+        color = 1 # Find the smallest available color
+        while color in used_colors:
+            color += 1 #Chooses next available color to ensure proper
+        colors[edge] = color
+    used_edges = []
+    return colors
+
+
+############################################################
+#Graph example
+
+reg = Graph.K_Regular(15,4)
+reg.vs["label"] = list(range(reg.vcount()))
+col_reg_edge_colors = greedy_edge_coloring(reg)
+reg.es['color'] = col_reg_edge_colors #assigns empty edge color attributes
+reg_edge_colors = {} #Initialize dictionary of the form taken by our algorithms
+for i, color in enumerate(col_reg_edge_colors): # Print edge colors
+  #print(f"Edge {i}: Color {color}") # Assign color names to numbers, I initialized more colors than we need for future examples
+  if color == 1:
+    reg_edge_colors[i] = "red"
+  elif color == 2:
+    reg_edge_colors[i] = "blue"
+  elif color == 3:
+    reg_edge_colors[i] = "yellow"
+  elif color == 4:
+    reg_edge_colors[i] = "green"
+  elif color == 5:
+    reg_edge_colors[i] = "pink"
+  elif color == 6:
+    reg_edge_colors[i] = "purple"
+  elif color == 7:
+    reg_edge_colors[i] = "cyan"
+  elif color == 8:
+    reg_edge_colors[i] = "orange"
+  elif color == 9:
+    reg_edge_colors[i] = "darkgreen"
+  elif color == 10:
+    reg_edge_colors[i] = "indigo"
+  elif color == 11:
+    reg_edge_colors[i] = "magenta"
+  elif color == 12:
+    reg_edge_colors[i] = "olive"
+  else:
+    reg_edge_colors[i] = "black" # Default color if not in the specified range
+
+print(reg_edge_colors)
+
+# plot
+layout = reg.layout_circle()
+fig, ax = plt.subplots(figsize=(6, 6))
+ig.plot(reg, target=ax, layout=layout, edge_width=2, edge_color = reg_edge_colors)
+plt.title("K-Regular with Colored Edges Greedy Test")
+plt.axis("off")
+plt.show()
+
+reg_new = reg.copy() #Copies for use in other cells
+reg_edge_colors_new = reg_edge_colors.copy()
+col_reg_edge_colors_new = col_reg_edge_colors.copy()
